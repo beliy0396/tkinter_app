@@ -1,6 +1,7 @@
 import ttkbootstrap as ttk
-from tkinter import *
 import sqlite3
+import pandas as pd
+from tkinter import *
 
 class Main(ttk.Frame):
     def __init__(self, root):
@@ -12,7 +13,7 @@ class Main(ttk.Frame):
         toolbar.pack(side=ttk.TOP, fill=ttk.X)
 
 
-        self.catalog_img = ttk.PhotoImage(file='img/img.png')
+        self.catalog_img = ttk.PhotoImage(file='img/catalog.png')
         btn_goods_or_services = ttk.Menubutton(toolbar, text='Категория',
                                      bootstyle="dark menubutton",
                                      image=self.catalog_img)
@@ -31,9 +32,10 @@ class Main(ttk.Frame):
                                                    command=self.open_services_catalog)
         btn_goods_or_services.pack(side=ttk.LEFT, padx=35, pady=5)
 
+        self.new_img = ttk.PhotoImage(file='img/new.png')
         btn_add_record = ttk.Button(toolbar, text='Добавить запись',
                                                bootstyle="dark",
-                                               image=self.catalog_img,
+                                               image=self.new_img,
                                                command=self.open_add_record)
         btn_add_record.pack(side=ttk.LEFT, padx=35, pady=5)
 
@@ -55,36 +57,57 @@ class AddRecord(ttk.Toplevel):
 
     def init_add_record(self):
         self.title('Добавление новой записи')
-        self.geometry('1220x820')
+        self.geometry('1320x820')
         self.resizable(False, False)
 
         self.grab_set()
         self.focus_set()
 
         combobox_values_type = ['Товар', 'Услуга']
-        self.combobox_type = ttk.Combobox(self, values=combobox_values_type, bootstyle="dark")
-        self.combobox_type.pack(side=ttk.LEFT, padx=35, pady=5)
 
-        self.entry_articul = ttk.Entry(self, bootstyle="success")
-        self.entry_articul.pack(side=ttk.LEFT, padx=35, pady=5)
+        toolbar = ttk.Frame(self, bootstyle='secondary')
+        toolbar.pack(side=ttk.TOP, fill=ttk.Y)
 
-        self.entry_title = ttk.Entry(self, bootstyle="success")
-        self.entry_title.pack(side=ttk.LEFT, padx=35, pady=5)
+        self.button_add = ttk.Button(toolbar, text='Добавить', command=self.get_data, bootstyle="dark")
+        self.button_add.pack(pady=15)
 
-        self.entry_description = ttk.Entry(self, bootstyle="success")
-        self.entry_description.pack(side=ttk.LEFT, padx=35, pady=5)
+        label_type = ttk.Label(toolbar, text='Тип')
+        label_type.pack(side=ttk.LEFT, padx=10, pady=5)
+
+        self.combobox_type = ttk.Combobox(toolbar, values=combobox_values_type, bootstyle="dark")
+        self.combobox_type.pack(side=ttk.LEFT, padx=15, pady=5)
+
+        label_articul = ttk.Label(toolbar, text='Артикул')
+        label_articul.pack(side=ttk.LEFT, padx=10, pady=5)
+
+        self.entry_articul = ttk.Entry(toolbar, bootstyle="success")
+        self.entry_articul.pack(side=ttk.LEFT, padx=15, pady=5)
+
+        label_title = ttk.Label(toolbar, text='Название')
+        label_title.pack(side=ttk.LEFT, padx=10, pady=5)
+
+        self.entry_title = ttk.Entry(toolbar, bootstyle="success")
+        self.entry_title.pack(side=ttk.LEFT, padx=15, pady=5)
+
+        label_description = ttk.Label(toolbar, text='Описание')
+        label_description.pack(side=ttk.LEFT, padx=10, pady=5)
+
+        self.entry_description = ttk.Entry(toolbar, bootstyle="success")
+        self.entry_description.pack(side=ttk.LEFT, padx=15, pady=5)
         combobox_values_category = []
         self.combobox_type.bind("<<ComboboxSelected>>", self.change_combobox_category)
 
+        label_category = ttk.Label(toolbar, text='Категория')
+        label_category.pack(side=ttk.LEFT, padx=10, pady=5)
 
-        self.combobox_category = ttk.Combobox(self, values=combobox_values_category, bootstyle="dark")
-        self.combobox_category.pack(side=ttk.LEFT, padx=35, pady=5)
+        self.combobox_category = ttk.Combobox(toolbar, values=combobox_values_category, bootstyle="dark")
+        self.combobox_category.pack(side=ttk.LEFT, padx=15, pady=5)
 
-        self.entry_price = ttk.Entry(self, bootstyle="success")
+        label_price = ttk.Label(toolbar, text='Цена')
+        label_price.pack(side=ttk.LEFT, padx=10, pady=5)
+
+        self.entry_price = ttk.Entry(toolbar, bootstyle="success")
         self.entry_price.pack(side=ttk.LEFT, pady=5)
-
-        self.button_add = ttk.Button(self, text='Добавить', command=self.get_data, bootstyle="dark")
-        self.button_add.pack(pady=5)
 
     def change_combobox_category(self, *args):
         if self.combobox_type.get() == 'Товар':
@@ -114,7 +137,7 @@ class GoodsCatalog(ttk.Toplevel):
 
     def init_goods_catalog(self):
         self.title('Каталог товаров')
-        self.geometry('1220x820')
+        self.geometry('1000x400')
         self.resizable(False, False)
 
         self.grab_set()
@@ -136,15 +159,18 @@ class GoodsCatalog(ttk.Toplevel):
         button_drop_filter = ttk.Button(toolbar, text='Сбросить фильтр', command=self.view_goods_table, bootstyle="dark")
         button_drop_filter.pack(side=ttk.LEFT, padx=35, pady=5)
 
+        button_to_excel = ttk.Button(toolbar, text='Выгрузить в Excel', command=self.data_to_excel, bootstyle="dark")
+        button_to_excel.pack(side=ttk.LEFT, padx=35, pady=5)
+
         self.tree = ttk.Treeview(self, columns=('id', 'articul', 'title', 'description', 'category', 'price'),
                                  height=35,
                                  show='headings')
-        self.tree.column('id', width=150, anchor=ttk.CENTER)
+        self.tree.column('id', width=50, anchor=ttk.CENTER)
         self.tree.column('articul', width=150, anchor=ttk.CENTER)
         self.tree.column('title', width=250, anchor=ttk.CENTER)
-        self.tree.column('description', width=250, anchor=ttk.CENTER)
-        self.tree.column('category', width=250, anchor=ttk.CENTER)
-        self.tree.column('price', width=150, anchor=ttk.CENTER)
+        self.tree.column('description', width=300, anchor=ttk.CENTER)
+        self.tree.column('category', width=100, anchor=ttk.CENTER)
+        self.tree.column('price', width=200, anchor=ttk.CENTER)
 
         self.tree.heading('id', text='ID')
         self.tree.heading('articul', text='Артикул')
@@ -153,6 +179,15 @@ class GoodsCatalog(ttk.Toplevel):
         self.tree.heading('category', text='Категория')
         self.tree.heading('price', text='Цена')
         self.tree.pack()
+
+
+    def data_to_excel(self):
+        row_list = []
+        columns = ('id', 'articul', 'title', 'description', 'category', 'price')
+        for row in self.tree.get_children():
+            row_list.append(self.tree.item(row)["values"])
+        df_tree = pd.DataFrame(row_list, columns=columns)
+        df_tree.to_excel('data.xlsx')
 
     def view_goods_table(self):
         self.db.cur.execute(
@@ -181,7 +216,7 @@ class ServicesCatalog(ttk.Toplevel):
 
     def init_services_catalog(self):
         self.title('Каталог услуг')
-        self.geometry('1220x820+400+300')
+        self.geometry('1000x400+400+300')
         self.resizable(False, False)
 
         self.grab_set()
@@ -194,22 +229,24 @@ class ServicesCatalog(ttk.Toplevel):
         self.combobox_filter = ttk.Combobox(toolbar, values=combobox_values)
         self.combobox_filter.pack(side=ttk.LEFT, padx=35, pady=5)
 
-        button_filter = ttk.Button(toolbar, text='Поиск по фильтру', command=self.view_services_filter)
+        button_filter = ttk.Button(toolbar, text='Поиск по фильтру', command=self.view_services_filter, bootstyle="dark")
         button_filter.pack(side=ttk.LEFT, padx=35, pady=5)
 
-        button_drop_filter = ttk.Button(toolbar, text='Сбросить фильтр', command=self.view_services_table)
+        button_drop_filter = ttk.Button(toolbar, text='Сбросить фильтр', command=self.view_services_table, bootstyle="dark")
         button_drop_filter.pack(side=ttk.LEFT, padx=35, pady=5)
 
+        button_to_excel = ttk.Button(toolbar, text='Выгрузить в Excel', command=self.data_to_excel, bootstyle="dark")
+        button_to_excel.pack(side=ttk.LEFT, padx=35, pady=5)
 
         self.tree = ttk.Treeview(self, columns=('id', 'articul', 'title', 'description', 'category', 'price'),
                                  height=35,
                                  show='headings')
-        self.tree.column('id', width=150, anchor=ttk.CENTER)
+        self.tree.column('id', width=50, anchor=ttk.CENTER)
         self.tree.column('articul', width=150, anchor=ttk.CENTER)
         self.tree.column('title', width=250, anchor=ttk.CENTER)
-        self.tree.column('description', width=250, anchor=ttk.CENTER)
-        self.tree.column('category', width=250, anchor=ttk.CENTER)
-        self.tree.column('price', width=150, anchor=ttk.CENTER)
+        self.tree.column('description', width=300, anchor=ttk.CENTER)
+        self.tree.column('category', width=100, anchor=ttk.CENTER)
+        self.tree.column('price', width=200, anchor=ttk.CENTER)
 
         self.tree.heading('id', text='ID')
         self.tree.heading('articul', text='Артикул')
@@ -219,6 +256,13 @@ class ServicesCatalog(ttk.Toplevel):
         self.tree.heading('price', text='Цена')
         self.tree.pack()
 
+    def data_to_excel(self):
+        row_list = []
+        columns = ('id', 'articul', 'title', 'description', 'category', 'price')
+        for row in self.tree.get_children():
+            row_list.append(self.tree.item(row)["values"])
+        df_tree = pd.DataFrame(row_list, columns=columns)
+        df_tree.to_excel('data.xlsx')
 
     def view_services_table(self):
         self.db.cur.execute(
@@ -265,6 +309,6 @@ if __name__ == "__main__":
     app.pack()
     root.title('OOO')
     root.iconbitmap('')
-    root.geometry('920x220')
-    root.resizable(True, True)
+    root.geometry('350x500')
+    root.resizable(False, False)
     root.mainloop()
