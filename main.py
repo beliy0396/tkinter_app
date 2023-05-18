@@ -31,7 +31,11 @@ class Main(ttk.Frame):
                                                    command=self.open_services_catalog)
         btn_goods_or_services.pack(side=ttk.LEFT, padx=35, pady=5)
 
-
+        btn_add_record = ttk.Button(toolbar, text='Добавить запись',
+                                               bootstyle="dark",
+                                               image=self.catalog_img,
+                                               command=self.open_add_record)
+        btn_add_record.pack(side=ttk.LEFT, padx=35, pady=5)
 
 
     def open_goods_catalog(self):
@@ -40,6 +44,66 @@ class Main(ttk.Frame):
     def open_services_catalog(self):
         ServicesCatalog()
 
+    def open_add_record(self):
+        AddRecord()
+
+class AddRecord(ttk.Toplevel):
+    def __init__(self):
+        super().__init__(root)
+        self.init_add_record()
+        self.db = db
+
+    def init_add_record(self):
+        self.title('Добавление новой записи')
+        self.geometry('1220x820')
+        self.resizable(False, False)
+
+        self.grab_set()
+        self.focus_set()
+
+        combobox_values_type = ['Товар', 'Услуга']
+        self.combobox_type = ttk.Combobox(self, values=combobox_values_type, bootstyle="dark")
+        self.combobox_type.pack(side=ttk.LEFT, padx=35, pady=5)
+
+        self.entry_articul = ttk.Entry(self, bootstyle="success")
+        self.entry_articul.pack(side=ttk.LEFT, padx=35, pady=5)
+
+        self.entry_title = ttk.Entry(self, bootstyle="success")
+        self.entry_title.pack(side=ttk.LEFT, padx=35, pady=5)
+
+        self.entry_description = ttk.Entry(self, bootstyle="success")
+        self.entry_description.pack(side=ttk.LEFT, padx=35, pady=5)
+        combobox_values_category = []
+        self.combobox_type.bind("<<ComboboxSelected>>", self.change_combobox_category)
+
+
+        self.combobox_category = ttk.Combobox(self, values=combobox_values_category, bootstyle="dark")
+        self.combobox_category.pack(side=ttk.LEFT, padx=35, pady=5)
+
+        self.entry_price = ttk.Entry(self, bootstyle="success")
+        self.entry_price.pack(side=ttk.LEFT, pady=5)
+
+        self.button_add = ttk.Button(self, text='Добавить', command=self.get_data, bootstyle="dark")
+        self.button_add.pack(pady=5)
+
+    def change_combobox_category(self, *args):
+        if self.combobox_type.get() == 'Товар':
+            combobox_values_category = ['Смартфоны', 'Ноутбуки', 'Наушники']
+        else:
+            combobox_values_category = ['Комплект приложений', 'Наклейка стекла на смартфон', 'Создание учётной записи']
+        self.combobox_category.config(values=combobox_values_category)
+
+    def get_data(self):
+        if self.combobox_type.get() == 'Товар':
+            table = 'goods'
+        else:
+            table = 'services'
+        articul = self.entry_articul.get()
+        title = self.entry_title.get()
+        description = self.entry_description.get()
+        category = self.combobox_category.get()
+        price = self.entry_price.get()
+        self.db.insert_record(table, articul, title, description, category, price)
 
 class GoodsCatalog(ttk.Toplevel):
     def __init__(self):
@@ -66,7 +130,7 @@ class GoodsCatalog(ttk.Toplevel):
         self.combobox_filter = ttk.Combobox(toolbar, values=combobox_values, bootstyle="dark")
         self.combobox_filter.pack(side=ttk.LEFT, padx=35, pady=5)
 
-        button_filter = ttk.Button(toolbar, text='Поиск по фильтру', command=self.get_combobox, bootstyle="dark")
+        button_filter = ttk.Button(toolbar, text='Поиск по фильтру', command=self.view_goods_filter, bootstyle="dark")
         button_filter.pack(side=ttk.LEFT, padx=35, pady=5)
 
         button_drop_filter = ttk.Button(toolbar, text='Сбросить фильтр', command=self.view_goods_table, bootstyle="dark")
@@ -90,11 +154,6 @@ class GoodsCatalog(ttk.Toplevel):
         self.tree.heading('price', text='Цена')
         self.tree.pack()
 
-
-    def get_combobox(self):
-        value = self.combobox_filter.get()
-        self.view_goods_filter(value)
-
     def view_goods_table(self):
         self.db.cur.execute(
             '''SELECT * FROM goods'''
@@ -102,7 +161,8 @@ class GoodsCatalog(ttk.Toplevel):
         [self.tree.delete(i) for i in self.tree.get_children()]
         [self.tree.insert('', 'end', values=row) for row in self.db.cur.fetchall()]
 
-    def view_goods_filter(self, value):
+    def view_goods_filter(self, *args):
+        value = self.combobox_filter.get()
         self.db.cur.execute(
             f'''SELECT * FROM goods WHERE category = "{value}"'''
         )
@@ -127,15 +187,18 @@ class ServicesCatalog(ttk.Toplevel):
         self.grab_set()
         self.focus_set()
 
+        toolbar = ttk.Frame(self, bootstyle='secondary')
+        toolbar.pack(side=ttk.TOP, fill=ttk.X)
+
         combobox_values = ['Комплект приложений', 'Наклейка стекла на смартфон', 'Создание учётной записи']
-        self.combobox_filter = ttk.Combobox(self, values=combobox_values)
-        self.combobox_filter.pack(pady=10)
+        self.combobox_filter = ttk.Combobox(toolbar, values=combobox_values)
+        self.combobox_filter.pack(side=ttk.LEFT, padx=35, pady=5)
 
-        button_filter = ttk.Button(self, text='Поиск по фильтру', command=self.get_combobox)
-        button_filter.pack(pady=10)
+        button_filter = ttk.Button(toolbar, text='Поиск по фильтру', command=self.view_services_filter)
+        button_filter.pack(side=ttk.LEFT, padx=35, pady=5)
 
-        button_drop_filter = ttk.Button(self, text='Сбросить фильтр', command=self.view_services_table)
-        button_drop_filter.pack(pady=10)
+        button_drop_filter = ttk.Button(toolbar, text='Сбросить фильтр', command=self.view_services_table)
+        button_drop_filter.pack(side=ttk.LEFT, padx=35, pady=5)
 
 
         self.tree = ttk.Treeview(self, columns=('id', 'articul', 'title', 'description', 'category', 'price'),
@@ -156,9 +219,6 @@ class ServicesCatalog(ttk.Toplevel):
         self.tree.heading('price', text='Цена')
         self.tree.pack()
 
-    def get_combobox(self):
-        value = self.combobox_filter.get()
-        self.view_services_filter(value)
 
     def view_services_table(self):
         self.db.cur.execute(
@@ -167,7 +227,8 @@ class ServicesCatalog(ttk.Toplevel):
         [self.tree.delete(i) for i in self.tree.get_children()]
         [self.tree.insert('', 'end', values=row) for row in self.db.cur.fetchall()]
 
-    def view_services_filter(self, value):
+    def view_services_filter(self, *args):
+        value = self.combobox_filter.get()
         self.db.cur.execute(
             f'''SELECT * FROM services WHERE category = "{value}"'''
         )
@@ -189,6 +250,13 @@ class DB:
             '''CREATE TABLE IF NOT EXISTS services(id integer primary key, articul text, title text, description text, category text, price text)'''
         )
         self.conn.commit()
+
+    def insert_record(self, table, articul, title, description, category, price):
+        self.cur.execute(
+            f'''INSERT INTO {table}(articul, title, description, category, price) VALUES('{articul}', '{title}', '{description}', '{category}', '{price}')'''
+        )
+        self.conn.commit()
+
 
 if __name__ == "__main__":
     root = ttk.Window(themename='darkly')
