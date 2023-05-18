@@ -108,6 +108,9 @@ class GoodsCatalog(ttk.Toplevel):
         )
         [self.tree.delete(i) for i in self.tree.get_children()]
         [self.tree.insert('', 'end', values=row) for row in self.db.cur.fetchall()]
+
+
+
 class ServicesCatalog(ttk.Toplevel):
     def __init__(self):
         super().__init__(root)
@@ -131,7 +134,7 @@ class ServicesCatalog(ttk.Toplevel):
         button_filter = ttk.Button(self, text='Поиск по фильтру', command=self.get_combobox)
         button_filter.pack(pady=10)
 
-        button_drop_filter = ttk.Button(self, text='Сбросить фильтр', command=self.view_services_table())
+        button_drop_filter = ttk.Button(self, text='Сбросить фильтр', command=self.view_services_table)
         button_drop_filter.pack(pady=10)
 
 
